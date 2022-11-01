@@ -1,0 +1,14 @@
+[
+ {
+  "directory": "/home/salvachll/Sync/UPV/CMCP/Trabajo CMCP",
+  "arguments": [
+   "mpicc",
+   "-g",
+   "-c",
+   "-Wall",
+   "-O3",
+   "matvecmpi.c"
+  ],
+  "file": "matvecmpi.c"
+ }
+]
