@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <mpi.h>
 
 #define NREPS 10000
 
@@ -24,8 +25,12 @@ void matvec(int N,int b,double *A, double *v, double *w)
 
 int main(int argc, char **argv) 
 {
-  int i, j, k, N=50, b=4;
+  int i, j, k, N=50, b=4, rank, size;
   double *A, *v, *w;
+
+  MPI_Init(&argc, &argv);
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &size);
 
   /* Extracción de argumentos */
   if (argc > 1) { /* El usuario ha indicado el valor de N */
@@ -62,6 +67,7 @@ int main(int argc, char **argv)
   free(A);
   free(v);
   free(w);
+  MPI_Finalize();
 
   return 0;
 }
