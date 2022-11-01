@@ -1,6 +1,6 @@
 # Proyecto CMCP
 Conceptos y Métodos de la Computación Paralela
-![Figura 1](Figura1.png)
+![misc/Figura 1](Figura1.png)
 
 ## Producto matriz-vector con matriz banda
 Para este proyecto se proporciona la versión secuencial **matvec.c** del producto matriz-vector *w = Av* de una matriz banda cuadrada *A ∈ R^N×N* con ancho de banda b. La estructura banda de la matriz se refiere a que el elemento *a_ij* es cero si *|i − j| > b*.
