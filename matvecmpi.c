@@ -1,7 +1,7 @@
 #include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
-#define NREPS 10000
+#define NREPS 1000000
 
 void printMatrix(double *matrix, int m, int n, int rank, char matrixName);
 
@@ -35,8 +35,8 @@ void matvec(int N, int b, double *A, double *v, double *w) {
 
   /*printMatrix(v, 1, n + 2 * b, rank, 'v');*/
   for (i = 0; i < n; i++) {
-    w[i] = 0.0;
     iG = rank * n + i;
+    w[i] = 0.0;
     li = iG - b < 0 ? 0 : iG - b;         /* limite inferior */
     ls = iG + b > N - 1 ? N - 1 : iG + b; /* limite superior */
     for (j = li; j <= ls; j++) {
@@ -45,19 +45,19 @@ void matvec(int N, int b, double *A, double *v, double *w) {
         jaux = j + b;
       }
       w[i] += A[iG * N + j] * v[jaux];
-      /*printf("rank = %d -- i = %d, iG = %d, j = %d, N = %d, iGNj = %d, li =
+      /*printf("rank = %d -- i = %d, j = %d, N = %d, iGNj = %d, li = %d, ls %d,
        * "*/
-      /*"%d, ls %d, "*/
-      /*"w[%d] = %f, A[%d] = %f, v[%d] = %f\n",*/
-      /*rank, i, iG, j, N, iG * N + j, li, ls, iG, w[i], iG * N + j,*/
-      /*A[iG * N + j], j, v[j]);*/
+      /*"ls - li = %d, "*/
+      /*"w[%d] = %f, A[%d] = %5.3f, v[%d] = %5.3f\n",*/
+      /*rank, iG, j, N, i * N + j, li, ls, ls - li, i, w[i], iG * N + j,*/
+      /*A[iG * N + j], jaux, v[jaux]);*/
     }
   }
 }
 
 int main(int argc, char **argv) {
   int i, j, k, N = 50, b = 4, rank, size, n, iG;
-  double *A, *v, *w, *Aux;
+  double *A, *v, *w, *Aux, time;
 
   MPI_Init(&argc, &argv);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -78,12 +78,14 @@ int main(int argc, char **argv) {
   }
 
   n = N / size;
-  printf("n = %d\n", n);
+  /*printf("N = %d, n = %d, b = %d, size = %d, rank = %d\n", N, n, b, size,
+   * rank);*/
   /* Reserva de memoria */
   A = (double *)calloc(N * N, sizeof(double));
-  v = (double *)calloc(n + 2 * b, sizeof(double));
+  v = (double *)calloc(N + 2 * b, sizeof(double));
+  /*printf("n + 2 * b = %d\n", n + 2 * b);*/
   w = (double *)calloc(n, sizeof(double));
-  Aux = (double *)calloc(N*N, sizeof(double));
+  Aux = (double *)calloc(N, sizeof(double));
 
   /* Inicializar datos */
   for (i = 0; i < n; i++) {
@@ -99,31 +101,39 @@ int main(int argc, char **argv) {
       }
     }
   }
+  /*printMatrix(A, N, N, rank, 'A');*/
 
-  for (i = 0; i < n; i++)
-    v[b + i] = 1.0;
+  for (i = 0; i < N + 2 * b; i++)
+    v[i] = 1.0;
 
   /* Multiplicación de matrices */
+  MPI_Barrier(MPI_COMM_WORLD);
+  time = MPI_Wtime();
   for (k = 0; k < NREPS; k++)
     matvec(N, b, A, v, w);
+  MPI_Barrier(MPI_COMM_WORLD);
+  time = MPI_Wtime() - time;
 
-  printf("w[2] = %f\n", w[2]);
-  MPI_Gather(w, n, MPI_DOUBLE, Aux, N, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-  if (rank == 0)
+  /*printMatrix(w, 1, n, rank, n);*/
+  MPI_Gather(&w[0], n, MPI_DOUBLE, Aux, n, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+  if (rank == 0) {
     if (N < 100)
-      for (i = 0; i < N; i++)
+      for (i = 0; i < N; i++) {
         printf("Aux[%d] = %g\n", i, Aux[i]);
+      }
+    free(Aux);
+    printf("Tiempo de ejecución: %7.5f\n", time);
+  }
 
+  /*printMatrix(w, 1, n, rank, 'w');*/
   /*if (N < 100) {*/
-  /*printf("PROCESO --> %d\n", rank);*/
-  /*for (i = 0; i < n+99; i++)*/
+  /*for (i = 0; i < n; i++)*/
   /*printf("rank = %d -- w[%d] = %g\n", rank, i, w[i]);*/
   /*}*/
+  MPI_Finalize();
   free(A);
   free(v);
   free(w);
-  free(Aux);
-  MPI_Finalize();
 
   return 0;
 }
@@ -131,7 +141,7 @@ int main(int argc, char **argv) {
 void printMatrix(double *matrix, int m, int n, int rank, char matrixName) {
   int i, j;
 
-  printf("Process--> %d\n", rank);
+  printf("Process--> %d || Matrix --> %c\n", rank, matrixName);
 
   for (i = 0; i < m; i++) {
     printf("r%d -- ", rank);
