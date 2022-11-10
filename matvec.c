@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#define NREPS 1000000
+#define NREPS 10000
 
 void printMatrix(double *matrix, int m, int n, int rank, char matrixName);
 
@@ -63,11 +63,11 @@ int main(int argc, char **argv) {
       }
     }
   }
-  /*printMatrix(A, N, N, 0, 'A');*/
+  // printMatrix(A, N, N, 0, 'A');
 
   for (i = 0; i < N; i++)
     v[i] = 1.0;
-  /*printMatrix(v, 1, N, 0, 'v');*/
+  // printMatrix(v, 1, N, 0, 'v');
 
   clock_t start = clock();
   /* Multiplicación de matrices */
