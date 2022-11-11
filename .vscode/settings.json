@@ -3,6 +3,7 @@
   "sonarlint.pathToCompileCommands": "${workspaceFolder}/compile_commands.json",
   "files.associations": {
     "*.html": "html",
-    "type_traits": "c"
+    "type_traits": "c",
+    "algorithm": "c"
   }
 }

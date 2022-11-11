@@ -17,6 +17,7 @@ void matvec(int N, int b, double* A, double* v, double* w)
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
+    MPI_Request request[4];
     n = N / size;
 
     if (rank == 0)
@@ -28,18 +29,26 @@ void matvec(int N, int b, double* A, double* v, double* w)
     else
         below = rank + 1;
 
-    MPI_Sendrecv(&v[b], b, MPI_DOUBLE, above, 0, &v[0], b, MPI_DOUBLE, above, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Isend(&v[b], b, MPI_DOUBLE, above, 0, MPI_COMM_WORLD, &request[0]);
+    MPI_Isend(&v[n], b, MPI_DOUBLE, below, 0, MPI_COMM_WORLD, &request[1]);
+    MPI_Irecv(&v[0], b, MPI_DOUBLE, above, 0, MPI_COMM_WORLD, &request[2]);
+    MPI_Irecv(&v[b + n], b, MPI_DOUBLE, below, 0, MPI_COMM_WORLD, &request[3]);
+    // MPI_Sendrecv(&v[b], b, MPI_DOUBLE, above, 0, &v[0], b, MPI_DOUBLE, above, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    // MPI_Sendrecv(&v[n], b, MPI_DOUBLE, below, 0, &v[b + n], b, MPI_DOUBLE, below, 0, MPI_COMM_WORLD,
+    // MPI_STATUS_IGNORE);
 
-    MPI_Sendrecv(&v[n], b, MPI_DOUBLE, below, 0, &v[b + n], b, MPI_DOUBLE, below, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-    // printMatrix(v, 1, n + 2 * b, rank, 'v');
     for (i = 0; i < n; i++) {
         iG = rank * n + i;
         w[i] = 0.0;
         li = iG - b < 0 ? 0 : iG - b; /* limite inferior */
         ls = iG + b > N - 1 ? N - 1 : iG + b; /* limite superior */
         for (j = li; j <= ls; j++) {
+            if (j - (rank * n) + b < b || j - (rank * n) + b >= b + n) {
+                continue;
+            }
             w[i] += A[i * N + j] * v[j - (rank * n) + b];
+            if (rank == 0)
+
             printf("rank = %d -- i = %d, j = %d, N = %d, iGNj = %d, li = %d, ls %d,"
                    "ls - li = %d, "
                    "w[%d] = %f, A[%d] = %5.3f, v[%d] = %5.3f\n",
@@ -47,6 +56,30 @@ void matvec(int N, int b, double* A, double* v, double* w)
                 v[j - (rank * n) + b]);
         }
     }
+
+    MPI_Waitall(4, request, MPI_STATUS_IGNORE);
+    // printMatrix(v, 1, n + 2 * b, rank, 'v');
+    printf("WAIT ALL\n");
+
+    for (i = 0; i < n; i++) {
+        iG = rank * n + i;
+        li = iG - b < 0 ? 0 : iG - b; /* limite inferior */
+        ls = iG + b > N - 1 ? N - 1 : iG + b; /* limite superior */
+        for (j = li; j <= ls; j++) {
+            if (j - (rank * n) + b >= b && j - (rank * n) + b < n + b) {
+                // printf("%d continue\n", j - (rank * n) + b);
+                continue;
+            }
+            w[i] += A[i * N + j] * v[j - (rank * n) + b];
+            if (rank == 0)
+            printf("rank = %d -- i = %d, j = %d, N = %d, iGNj = %d, li = %d, ls %d,"
+                   "ls - li = %d, "
+                   "w[%d] = %f, A[%d] = %5.3f, v[%d] = %5.3f\n",
+                rank, iG, j, N, i * N + j, li, ls, ls - li, i, w[i], i * N + j, A[i * N + j], j - (rank * n) + b,
+                v[j - (rank * n) + b]);
+        }
+    }
+    
 }
 
 int main(int argc, char** argv)
